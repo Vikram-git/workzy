@@ -9,6 +9,7 @@ export interface LocalState {
   reviews: any[];
   reports: any[];
   blocks: { user_id: string; blocked_user_id: string }[];
+  savedWorkers: { customer_id: string; worker_id: string; created_at: string }[];
   notifications: any[];
   categories: any[];
   languages: any[];
@@ -17,7 +18,7 @@ export interface LocalState {
 }
 
 const seed: LocalState = {
-  profiles: [], workers: [], bookings: [], reviews: [], reports: [], blocks: [], notifications: [],
+  profiles: [], workers: [], bookings: [], reviews: [], reports: [], blocks: [], savedWorkers: [], notifications: [],
   categories: [
     ['cleaning','Cleaning','Home and office cleaning','sparkles'],['gardening','Gardening','Garden care and maintenance','sprout'],
     ['catering','Catering','Food preparation and events','utensils'],['electrician','Electrician','Electrical repairs and installation','zap'],
@@ -48,6 +49,7 @@ export async function readState(): Promise<LocalState> {
     request.onsuccess=()=>resolve(request.result||structuredClone(seed));
     request.onerror=()=>reject(request.error||new Error('Unable to read local app data.'));
   }).then(async state=>{
+    state.savedWorkers ||= [];
     if(state.demoDataVersion===2)return state;
     const demoWorkers=[
       {slug:'meena',name:'Meena S.',email:'demo.meena@workzy.local',phone:'+91 90000 00101',category:'cleaning',areas:['adyar','mylapore'],languages:['tamil'],experience:5,hourly:400,daily:2600,bio:'Home cleaning and routine upkeep. Demo profile for exploring WORKZY.'},
@@ -86,6 +88,7 @@ export async function updateState<T>(change:(state:LocalState)=>T):Promise<T>{
     const request=store.get(STATE_KEY);
     request.onsuccess=()=>{
       const state=(request.result||structuredClone(seed)) as LocalState;
+      state.savedWorkers ||= [];
       try { result=change(state); store.put(state,STATE_KEY); } catch(error) { tx.abort(); reject(error); }
     };
     request.onerror=()=>{tx.abort();reject(request.error||new Error('Unable to update local app data.'))};

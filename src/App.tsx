@@ -16,7 +16,7 @@ type NavItem={page:Page;label:string;icon:typeof Home};
 
 export function App(){
  const auth=useAuth();
- const [page,setPage]=useState<Page>('home'),[categoryId,setCategoryId]=useState(''),[selectedWorker,setSelectedWorker]=useState<WorkerDirectoryEntry|null>(null),[notice,setNotice]=useState(''),[mobileNav,setMobileNav]=useState(false);
+ const [page,setPage]=useState<Page>('home'),[categoryId,setCategoryId]=useState(''),[savedSearch,setSavedSearch]=useState(false),[selectedWorker,setSelectedWorker]=useState<WorkerDirectoryEntry|null>(null),[notice,setNotice]=useState(''),[mobileNav,setMobileNav]=useState(false);
  const [onboardingDone,setOnboardingDone]=useState(()=>window.localStorage.getItem('workzy-onboarding-done')==='true');
  useEffect(()=>{if(auth.profile?.role==='admin')setPage('admin');else if(auth.profile?.role==='worker'&&page==='home')setPage('home');else if(!auth.profile)setPage('home')},[auth.profile?.role]);
  useEffect(()=>{if(!notice)return;const timer=window.setTimeout(()=>setNotice(''),3500);return()=>window.clearTimeout(timer)},[notice]);
@@ -28,14 +28,14 @@ export function App(){
 
  const role=auth.profile.role;
  const items:NavItem[]=role==='customer'?[{page:'home',label:'Home',icon:Home},{page:'search',label:'Search',icon:Search},{page:'bookings',label:'Bookings',icon:CalendarDays},{page:'profile',label:'Profile',icon:UserRound}]:role==='worker'?[{page:'home',label:'Home',icon:Home},{page:'requests',label:'Requests',icon:Wrench},{page:'bookings',label:'Bookings',icon:CalendarDays},{page:'profile-edit',label:'Profile',icon:UserRound}]:[{page:'admin',label:'Admin',icon:ShieldCheck}];
- const goto=(target:string)=>{if(target.startsWith('search:')){setCategoryId(target.slice(7));setPage('search')}else{setCategoryId('');setPage(target as Page)}setMobileNav(false)};
+ const goto=(target:string)=>{if(target==='search:saved'){setCategoryId('');setSavedSearch(true);setPage('search')}else if(target.startsWith('search:')){setCategoryId(target.slice(7));setSavedSearch(false);setPage('search')}else{setCategoryId('');setSavedSearch(false);setPage(target as Page)}setMobileNav(false)};
  return <div className={`app-shell app-shell--${role}`}>
    <aside className={`app-sidebar ${mobileNav?'app-sidebar--open':''}`}><Brand/><div className="sidebar-caption">{role==='admin'?'ADMINISTRATION':role==='worker'?'WORKER WORKSPACE':'YOUR WORKSPACE'}</div><nav className="side-navigation">{items.map(({page:p,label,icon:Icon})=><button key={p} className={page===p?'active':''} onClick={()=>goto(p)}><Icon size={18}/>{label}</button>)}</nav>{role==='worker'?<div className="side-notice"><ShieldCheck size={17}/><span>Verification must be approved before your profile is listed.</span></div>:role==='customer'?<div className="side-notice"><ShieldCheck size={17}/><span>Payment is arranged directly with the worker.</span></div>:null}<div className="sidebar-account"><Avatar name={auth.profile.full_name} image={auth.profile.profile_image}/><span><strong>{auth.profile.full_name}</strong><small>{role}</small></span><button aria-label="Sign out" onClick={()=>void auth.signOut()}><LogOut size={16}/></button></div></aside>
    {mobileNav?<button className="mobile-nav-scrim" onClick={()=>setMobileNav(false)} aria-label="Close navigation"/>:null}
    <div className="app-main"><div className="local-mode-banner"><strong>Local device mode</strong><span>Data stays in this browser and is not protected for multi-user use.</span></div><header className="app-header"><button className="mobile-menu" onClick={()=>setMobileNav(!mobileNav)} aria-label="Toggle navigation">{mobileNav?<X size={20}/>:<Menu size={20}/>}</button><span className="header-location"><span className="location-pip"/>Chennai, Tamil Nadu</span><div className="header-actions"><Notifications/><div className="header-profile"><Avatar name={auth.profile.full_name} image={auth.profile.profile_image}/><span><strong>{auth.profile.full_name}</strong><small>{role}</small></span></div></div></header>
     <main className={`app-content ${role==='admin'?'app-content--admin':''}`}>
       {role==='customer'&&page==='home'?<CustomerHome onNavigate={goto} onOpenWorker={setSelectedWorker}/>:null}
-      {role==='customer'&&page==='search'?<WorkerSearchScreen key={categoryId||'all'} initialCategory={categoryId} onOpenWorker={setSelectedWorker}/>:null}
+      {role==='customer'&&page==='search'?<WorkerSearchScreen key={`${savedSearch?'saved':'explore'}-${categoryId||'all'}`} initialCategory={categoryId} initialSaved={savedSearch} onOpenWorker={setSelectedWorker}/>:null}
       {role==='customer'&&page==='bookings'?<BookingListScreen role="customer" onNotice={setNotice}/>:null}
       {role==='customer'&&page==='profile'?<ProfileScreen onChanged={auth.refreshProfile} onNotice={setNotice}/>:null}
       {role==='worker'&&page==='home'?<WorkerHome onNavigate={goto} onNotice={setNotice}/>:null}

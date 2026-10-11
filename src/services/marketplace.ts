@@ -19,18 +19,29 @@ export async function getServiceAreas(){return (await readState()).areas.filter(
 export async function listAdminCategories(){return (await readState()).categories.sort((a,b)=>a.name.localeCompare(b.name)) as Category[]}
 export async function listAdminLanguages(){return (await readState()).languages.sort((a,b)=>a.name.localeCompare(b.name)) as Language[]}
 export async function listAdminAreas(){return (await readState()).areas.sort((a,b)=>a.city.localeCompare(b.city)||a.name.localeCompare(b.name)) as ServiceArea[]}
-export async function searchWorkers(filters:WorkerSearch={}){
- const state=await readState(),query=filters.query?.trim().toLowerCase()||'';
- const blocked=new Set(state.blocks.filter(x=>x.user_id===currentProfile(state)?.id).map(x=>x.blocked_user_id));
- const rows=state.workers.filter(w=>(w.verification_status==='verified'||w.is_demo)&&w.accepting_bookings&&w.availability_status==='available'&&!blocked.has(w.profile_id)).map(w=>entry(state,w)).filter(w=>{
+function matchingWorkers(state:LocalState,filters:WorkerSearch={},savedOnly=false){
+ const profile=currentProfile(state),query=filters.query?.trim().toLowerCase()||'';
+ const blocked=new Set(state.blocks.filter(x=>x.user_id===profile?.id).map(x=>x.blocked_user_id));
+ const saved=new Set(state.savedWorkers.filter(x=>x.customer_id===profile?.id).map(x=>x.worker_id));
+ return state.workers.filter(worker=>{
+   const workerProfile=state.profiles.find(p=>p.id===worker.profile_id);
+   return (worker.verification_status==='verified'||worker.is_demo)&&workerProfile?.account_status==='active'&&!blocked.has(worker.profile_id)&&(savedOnly?saved.has(worker.id):worker.accepting_bookings&&worker.availability_status==='available');
+ }).map(w=>entry(state,w)).filter(w=>{
    const categoryOk=!filters.categoryId||w.category_ids.includes(filters.categoryId),areaName=state.areas.find(a=>a.id===filters.areaId)?.name;
    const areaOk=!filters.areaId||w.service_areas.includes(areaName||''),langName=state.languages.find(l=>l.id===filters.languageId)?.name;
    const languageOk=!filters.languageId||w.languages.includes(langName||''),queryOk=!query||`${w.full_name} ${w.category_names.join(' ')} ${w.service_areas.join(' ')}`.toLowerCase().includes(query);
    const rate=filters.rateType==='daily'?w.daily_rate:w.hourly_rate,rateOk=filters.maxRate==null||filters.maxRate===''||rate<=Number(filters.maxRate),ratingOk=filters.minimumRating==null||filters.minimumRating===''||w.average_rating>=Number(filters.minimumRating);
-   return categoryOk&&areaOk&&languageOk&&queryOk&&rateOk&&ratingOk&&(!filters.availableOnly||w.availability_status==='available');
+   return categoryOk&&areaOk&&languageOk&&queryOk&&rateOk&&ratingOk&&(!filters.availableOnly||(w.availability_status==='available'&&w.accepting_bookings));
  }).sort((a,b)=>Number(Boolean(b.is_demo))-Number(Boolean(a.is_demo))||b.average_rating-a.average_rating||a.full_name.localeCompare(b.full_name));
+}
+export async function searchWorkers(filters:WorkerSearch={}){
+ const state=await readState(),rows=matchingWorkers(state,filters);
  const size=Math.min(Math.max(filters.pageSize??12,1),50),page=Math.max(filters.page??0,0);return rows.slice(page*size,(page+1)*size);
 }
+export async function listSavedWorkerIds(){const state=await readState(),profile=requireProfile(state,['customer']);return state.savedWorkers.filter(x=>x.customer_id===profile.id).map(x=>x.worker_id)}
+export async function listSavedWorkers(filters:WorkerSearch={}){const state=await readState();requireProfile(state,['customer']);return matchingWorkers(state,filters,true)}
+export async function toggleSavedWorker(workerId:string){return updateState(state=>{const profile=requireProfile(state,['customer']),worker=state.workers.find(w=>w.id===workerId&&(w.verification_status==='verified'||w.is_demo));if(!worker)throw new Error('This worker profile is no longer available.');const index=state.savedWorkers.findIndex(item=>item.customer_id===profile.id&&item.worker_id===workerId);if(index>=0){state.savedWorkers.splice(index,1);return false}state.savedWorkers.push({customer_id:profile.id,worker_id:workerId,created_at:now()});return true})}
+export async function setWorkerWeekdayAvailability(weekday:number,active:boolean){if(!Number.isInteger(weekday)||weekday<0||weekday>6)throw new Error('Choose a valid day of the week.');await updateState(state=>{const profile=requireProfile(state,['worker']),worker=state.workers.find(w=>w.profile_id===profile.id);if(!worker)throw new Error('Save your worker profile first.');const schedule=[...(worker.availability||[])] as {weekday:number;start_time:string;end_time:string;active:boolean}[];const existing=schedule.find(slot=>slot.weekday===weekday);if(existing)existing.active=active;else{const hours=schedule[0]||{start_time:'09:00',end_time:'17:00'};schedule.push({weekday,start_time:hours.start_time,end_time:hours.end_time,active})}worker.availability=schedule.sort((a,b)=>((a.weekday+6)%7)-((b.weekday+6)%7));worker.updated_at=now()})}
 export async function getWorker(workerId:string){const state=await readState(),worker=state.workers.find(w=>w.id===workerId&&(w.verification_status==='verified'||w.is_demo));if(!worker)throw new Error('This worker profile is no longer available.');const result=entry(state,worker);return {...result,reviews:state.reviews.filter(r=>r.worker_id===worker.id).map(r=>({id:r.id,customer_name:state.profiles.find(p=>p.id===r.customer_id)?.full_name||'Customer',rating:r.rating,review_text:r.review_text,created_at:r.created_at})).sort((a,b)=>b.created_at.localeCompare(a.created_at))} as WorkerDirectoryEntry&{reviews:Review[]}}
 export async function saveWorkerProfile(input:{primaryCategoryId:string;categoryIds:string[];bio:string;experienceYears:number;hourlyRate:number;dailyRate:number;languageIds:string[];areaIds:string[];availability:{weekday:number;start_time:string;end_time:string;active:boolean}[]}){
  return updateState(state=>{const profile=requireProfile(state,['worker']);const ids=[...new Set([input.primaryCategoryId,...input.categoryIds])];if(!ids.length||ids.some(id=>!state.categories.some(c=>c.id===id&&c.active)))throw new Error('Choose an active service category.');if(input.experienceYears<0||input.hourlyRate<=0||input.dailyRate<=0)throw new Error('Enter valid experience and positive rates.');if(!input.areaIds.length)throw new Error('Choose at least one service area.');let w=state.workers.find(x=>x.profile_id===profile.id);if(!w){w={id:newId(),profile_id:profile.id,created_at:now(),verification_status:'pending',availability_status:'available',accepting_bookings:true};state.workers.push(w)}Object.assign(w,{primary_category_id:input.primaryCategoryId,category_ids:ids,bio:input.bio.trim(),experience_years:input.experienceYears,hourly_rate:input.hourlyRate,daily_rate:input.dailyRate,language_ids:input.languageIds,area_ids:input.areaIds,availability:input.availability,updated_at:now()});return w.id})
