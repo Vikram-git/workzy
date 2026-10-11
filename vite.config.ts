@@ -1,8 +1,58 @@
+import { networkInterfaces } from 'node:os';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+function workzyPhoneShare(): import('vite').Plugin {
+  return {
+    name: 'workzy-phone-share',
+    configureServer(server) {
+      server.middlewares.use('/__workzy/lan-url', (request, response, next) => {
+        if (request.url?.split('?')[0] !== '/') return next();
+        if (request.method !== 'GET') {
+          response.statusCode = 405;
+          response.setHeader('Allow', 'GET');
+          response.end();
+          return;
+        }
+
+        const listenHost = server.config.server.host;
+        if (listenHost !== '0.0.0.0' && listenHost !== '::' && listenHost !== true) {
+          response.statusCode = 503;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ message: 'Start WORKZY with `bun run dev:lan` to share it with a phone.' }));
+          return;
+        }
+
+        const isPrivateIPv4 = (address: string) =>
+          /^10\./.test(address) || /^192\.168\./.test(address) || /^172\.(1[6-9]|2\d|3[01])\./.test(address);
+        const candidates = Object.entries(networkInterfaces()).flatMap(([name, addresses]) =>
+          (addresses ?? [])
+            .filter((address) => address.family === 'IPv4' && !address.internal && isPrivateIPv4(address.address))
+            .map((address) => ({ name, ip: address.address })),
+        );
+        candidates.sort((a, b) => Number(!/^en0$|^wlan0$|^Wi-Fi$/i.test(a.name)) - Number(!/^en0$|^wlan0$|^Wi-Fi$/i.test(b.name)));
+
+        const lanAddress = candidates[0]?.ip;
+        if (!lanAddress) {
+          response.statusCode = 503;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(JSON.stringify({ message: 'No private Wi-Fi address was found. Connect the Mac and phone to the same Wi-Fi.' }));
+          return;
+        }
+
+        const boundAddress = server.httpServer?.address();
+        const port = typeof boundAddress === 'object' && boundAddress ? boundAddress.port : server.config.server.port;
+        const protocol = 'encrypted' in request.socket && request.socket.encrypted ? 'https' : 'http';
+        response.setHeader('Content-Type', 'application/json');
+        response.setHeader('Cache-Control', 'no-store');
+        response.end(JSON.stringify({ url: `${protocol}://${lanAddress}:${port}/` }));
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), workzyPhoneShare()],
   build: {
     rollupOptions: {
       output: {

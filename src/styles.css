@@ -50,3 +50,22 @@
 .booking-availability-note{margin:-5px 0 0;padding:9px 10px;border-radius:7px;background:#f3f8f4;color:#4f6f58;font-size:10px;line-height:1.45}
 @media(max-width:780px){.welcome--customer,.welcome--worker{padding:17px}.welcome--customer h1,.welcome--worker h1{font-size:23px}.availability-panel{padding:13px}.week-day-list{gap:5px}.week-day{min-height:56px}}
 @media(max-width:620px){.welcome--customer,.welcome--worker{min-height:unset;padding:15px;border-radius:11px}.welcome--customer::after{right:-64px;top:-104px}.welcome--customer h1,.welcome--worker h1{font-size:22px}.availability-panel__heading{align-items:flex-start;flex-direction:column;gap:9px}.week-day-list{gap:4px}.week-day{min-height:50px;border-radius:7px}.week-day>span{width:20px;height:20px}.week-day small{font-size:8px}.next-shift{align-items:flex-start;flex-wrap:wrap;padding:10px}.next-shift__icon{width:33px;height:33px}.next-shift>div{padding-top:2px}.next-shift>.button{width:100%}.worker-card__save{width:29px;height:29px;right:8px;top:8px}.worker-card__aside>.rating{padding-right:28px}.worker-discovery-tabs{margin-bottom:-6px}}
+
+.phone-share-trigger{min-height:35px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--muted-dark);font-size:10px;font-weight:700;white-space:nowrap}
+.phone-share-trigger:hover{background:#f6f8f7;border-color:#bdcbc6;color:var(--ink)}
+.phone-share-trigger--compact{flex:none}
+.auth-top-actions,.onboarding-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.phone-share-dialog{width:min(430px,100%)}
+.phone-share-body{display:grid;justify-items:center;gap:12px;padding:18px}
+.phone-share-body>.body-muted{max-width:330px;font-size:11px;line-height:1.5;text-align:center}
+.phone-share-qr{padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.phone-share-qr svg{display:block;width:min(224px,62vw);height:auto}
+.phone-share-placeholder,.phone-share-error{width:100%;padding:15px;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:var(--muted-dark);font-size:11px;line-height:1.5;text-align:center}
+.phone-share-error{border-color:#eed1cb;background:var(--red-soft);color:var(--red)}
+.phone-share-link-label{justify-self:stretch;margin-top:2px;color:var(--muted-dark);font-size:10px;font-weight:700}
+.phone-share-copy-row{width:100%;display:flex;align-items:center;gap:7px}
+.phone-share-copy-row input{min-width:0;flex:1;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:#f8faf9;color:var(--ink);font-size:10px}
+.phone-share-copy{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 11px;border:1px solid #d7e0dd;border-radius:7px;background:#fff;color:var(--ink);font-size:10px;font-weight:700}
+.phone-share-copy:hover{background:#f6f8f7}
+.phone-share-note{margin:0;color:var(--muted);font-size:9px;line-height:1.45;text-align:center}
+@media(max-width:780px){.phone-share-trigger{width:35px;min-width:35px;padding:0}.phone-share-trigger span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.auth-top-actions{gap:7px}.phone-share-dialog .dialog-head{padding:13px}.phone-share-dialog .dialog-head h2{font-size:14px}.phone-share-body{padding:15px}}

@@ -13,6 +13,12 @@ bun run dev
 
 No environment file, database, or external account is needed. `bun run build` creates a static production build.
 
+## Try from a phone
+
+Run `bun run dev:lan` on the Mac, then use **Share to phone** in WORKZY to show a QR code, or open `http://<mac-wifi-ip>:5173/` in the phone's browser. Find the Mac's current Wi-Fi IP in macOS System Settings → Wi-Fi → Details, and keep both devices on the same Wi-Fi. Each browser has separate local data, so create or sign in to test accounts on the phone itself. Demo worker login: `demo.meena@workzy.local` / `workzy-demo`.
+
+Some mobile browsers restrict precise location on local HTTP pages; service-area selection remains available if the location prompt is blocked.
+
 ## Local mode boundaries
 
 - Each browser profile has its own data. There is no cloud sync or cross-device sharing.
