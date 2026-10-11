@@ -1,6 +1,8 @@
 import { networkInterfaces } from 'node:os';
+import { env } from 'node:process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 function workzyPhoneShare(): import('vite').Plugin {
   return {
@@ -13,6 +15,21 @@ function workzyPhoneShare(): import('vite').Plugin {
           response.setHeader('Allow', 'GET');
           response.end();
           return;
+        }
+
+        const securePreviewUrl = env.WORKZY_PUBLIC_PREVIEW_URL?.trim();
+        if (securePreviewUrl) {
+          try {
+            const parsedUrl = new URL(securePreviewUrl);
+            if (parsedUrl.protocol === 'https:' && parsedUrl.hostname.endsWith('.trycloudflare.com')) {
+              response.setHeader('Content-Type', 'application/json');
+              response.setHeader('Cache-Control', 'no-store');
+              response.end(JSON.stringify({ url: new URL('/', parsedUrl).toString() }));
+              return;
+            }
+          } catch {
+            // Fall through to the private Wi-Fi URL when the optional override is invalid.
+          }
         }
 
         const listenHost = server.config.server.host;
@@ -52,7 +69,29 @@ function workzyPhoneShare(): import('vite').Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), workzyPhoneShare()],
+  plugins: [react(), workzyPhoneShare(), VitePWA({
+    registerType: 'autoUpdate',
+    includeAssets: ['workzy-app-icon.png', 'apple-touch-icon.png'],
+    manifest: {
+      id: '/',
+      name: 'WORKZY · Local Services',
+      short_name: 'WORKZY',
+      description: 'Find the right local worker. Book with confidence.',
+      lang: 'en-IN',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      display_override: ['standalone', 'minimal-ui'],
+      background_color: '#f6f8f7',
+      theme_color: '#f6f8f7',
+      categories: ['lifestyle', 'business'],
+      icons: [
+        { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    },
+  })],
   build: {
     rollupOptions: {
       output: {

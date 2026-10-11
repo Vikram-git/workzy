@@ -13,6 +13,7 @@ export function PhoneShareButton({ compact = false }: { compact?: boolean }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const isSecurePreview = url.startsWith('https://');
 
   useEffect(() => {
     if (!open) return;
@@ -68,13 +69,13 @@ export function PhoneShareButton({ compact = false }: { compact?: boolean }) {
           <button type="button" className="icon-button" onClick={() => setOpen(false)} aria-label="Close QR code" autoFocus><X size={18}/></button>
         </div>
         <div className="phone-share-body">
-          <p className="body-muted">Connect your phone to the same Wi-Fi, then scan this code with its camera.</p>
+          <p className="body-muted">{isSecurePreview ? 'Scan the code to open WORKZY over HTTPS on your phone.' : 'Connect your phone to the same Wi-Fi, then scan this code with its camera.'}</p>
           {loading ? <div className="phone-share-placeholder" role="status">Finding this Mac’s Wi-Fi address…</div> : error && !url ? <div className="phone-share-error" role="alert">{error}</div> : url ? <>
             <div className="phone-share-qr"><QRCodeSVG value={url} size={224} level="M" includeMargin title="QR code that opens the WORKZY demo on a phone"/></div>
             <label className="phone-share-link-label" htmlFor="phone-share-link">Phone link</label>
             <div className="phone-share-copy-row"><input id="phone-share-link" readOnly value={url} onFocus={(event) => event.currentTarget.select()}/><button type="button" className="phone-share-copy" onClick={() => void copyLink()} aria-label="Copy phone link"><Copy size={16}/><span>{copied ? 'Copied' : 'Copy'}</span></button></div>
             {error ? <p className="phone-share-error" role="status">{error}</p> : null}
-            <p className="phone-share-note">The phone must stay on this Wi-Fi while using the local demo.</p>
+            <p className="phone-share-note">{isSecurePreview ? 'Allow location when prompted. Install WORKZY from your browser menu; each device keeps its own demo data.' : 'The phone must stay on this Wi-Fi while using the local demo.'}</p>
           </> : null}
         </div>
       </section>
