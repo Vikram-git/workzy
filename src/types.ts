@@ -32,6 +32,7 @@ export interface WorkerDirectoryEntry {
   verification_status: VerificationStatus;
   availability_status: AvailabilityStatus;
   accepting_bookings: boolean;
+  availability?: { weekday: number; start_time: string; end_time: string; active: boolean }[];
   category_ids: string[];
   category_names: string[];
   languages: string[];
